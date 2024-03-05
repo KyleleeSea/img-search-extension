@@ -1,3 +1,6 @@
+import puppeteer from 'puppeteer';
+
+
 // https://stackoverflow.com/questions/10423670/chrome-extension-that-copies-image-url-on-click
 
 // On right click, get image URL and call API
@@ -8,49 +11,41 @@ chrome.runtime.onInstalled.addListener(() => {
       contexts: ["image"]
     });
   });
-
-  chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-    console.log(info.srcUrl);
-    var google_lens_url = "https://lens.google.com/uploadbyurl?url="
-    if (info.menuItemId === "fetchImageURL") {
-      // Create a headless tab
-      const headlessTab = await chrome.tabs.create({ active: false });
   
-      // Navigate to the specified URL
-      var full_url = google_lens_url.concat(info.srcUrl);
-      console.log(full_url);
-      chrome.tabs.update(headlessTab.id, { url: full_url });
-  
-      // Wait for the tab to finish loading
-      chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo) {
-        if (tabId === headlessTab.id && changeInfo.status === "complete") {
-            console.log("finished scraping");
-          chrome.tabs.onUpdated.removeListener(listener);
-          // Execute content script to fetch image URLs
-          chrome.scripting.executeScript({
-            target: { tabId: headlessTab.id },
-            function: fetchImageURLs
-          });
-        }
-      });
-  
-      // Function to fetch image URLs from the page
-      function fetchImageURLs() {
-        const imageUrls = [];
-        const images = document.querySelectorAll("img");
-        images.forEach(img => {
-          imageUrls.push(img.src);
-        });
-        console.log("Image URLs:", imageUrls);
-      }
+  chrome.contextMenus.onClicked.addListener((info, tab) => {
+    if (info.menuItemId === "fetchImageURL" && info.srcUrl) {
+      console.log("Image URL:", info.srcUrl);
+      var results = get_results(info.srcUrl);
+      console.log(results)
     }
   });
-  
-//   chrome.contextMenus.onClicked.addListener((info, tab) => {
-//     if (info.menuItemId === "fetchImageURL" && info.srcUrl) {
-//       console.log("Image URL:", info.srcUrl);
-//       get_results(info.srcUrl);
-//     }
-//   });
 
-// Webscraping logic
+// https://developer.chrome.com/docs/chromium/new-headless
+// Webscrape the results (more documentation here im lazy af rn)
+async function get_results(url) {
+    var lens_url = "https://lens.google.com/uploadbyurl?url="
+    var full_url = lens_url.concat(url)
+    console.log("hit")
+    const browser = await puppeteer.launch({
+        headless: 'new',
+        // `headless: true` (default) enables old Headless;
+        // `headless: 'new'` enables new Headless;
+        // `headless: false` enables "headful" mode.
+      });
+      
+    const page = await browser.newPage();
+    await page.goto(full_url);
+      
+    // Wait for all images to load
+    await page.waitForSelector('img');
+
+    // Extract image sources
+    const imageSrcs = await page.evaluate(() => {
+        const images = Array.from(document.querySelectorAll('img'));
+        return images.map(img => img.src);
+    });
+    
+    console.log("Image Sources:", imageSrcs);
+    
+    await browser.close();
+}

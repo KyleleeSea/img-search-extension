@@ -9,6 +9,7 @@
       "default_icon": "placeholder_icon.png"
     },
     "background": {
-      "service_worker": "script.js"
+      "service_worker": "script.js",
+      "type": "module"
     }
 }
