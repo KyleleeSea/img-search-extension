@@ -3,9 +3,12 @@
     "name": "Clothing Finder",
     "description": "Find similar clothing items online.",
     "version": "1.0",
-    "permissions": ["activeTab", "storage"],
+    "permissions": ["activeTab", "storage", "contextMenus"],
     "action": {
       "default_popup": "index.html",
       "default_icon": "placeholder_icon.png"
+    },
+    "background": {
+      "service_worker": "script.js"
     }
 }
